@@ -1,0 +1,15 @@
+<?xml version='1.0'?>
+<!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
+<platform version="4.1">
+  <zone id="network-zone" routing="None">
+
+    <cluster id="microhpc" prefix="Odroid" radical="1-64" suffix=".micro" 
+             speed="139.5Mf" core="4"
+             bw="10Gbps" lat="1E-5s">
+    
+        <prop id="watt_per_state" value="1.0:2.0:5.0" />
+        <prop id="watt_off" value="1" />
+    </cluster>
+
+  </zone>
+</platform>
