@@ -2,6 +2,7 @@
 library(ggplot2)
 library(reshape2)
 library(ggthemes)
+library(dplyr)
 
 
 #Wrapper for round_robin code----
@@ -64,6 +65,7 @@ ggplot(simulations, aes(x=Application, y=time, fill = Environment, group = Envir
   ylab('Time [s]')
 ggsave(filename = "graphs/round_robin_time.jpeg")
 
+
 #Plot Energy Consumtion----
 ggplot(simulations, aes(x=Application, y=energy, fill = Environment, group = Environment)) +
   geom_bar(stat='identity', position='dodge')  +
@@ -72,6 +74,7 @@ ggplot(simulations, aes(x=Application, y=energy, fill = Environment, group = Env
   ylab('Energy [Joules]')
 ggsave(filename = "graphs/round_robin_energy.jpeg")
 
+
 #Plot Energy/Time Consumtion----
 ggplot(simulations, aes(x=Application, y=ratio, fill = Environment, group = Environment)) +
   geom_bar(stat='identity', position='dodge')  +
@@ -79,3 +82,12 @@ ggplot(simulations, aes(x=Application, y=ratio, fill = Environment, group = Envi
   theme(axis.title = element_text()) + 
   ylab('Energy/Time [Joules/s]')
 ggsave(filename = "graphs/round_robin_energy_time.jpeg")
+
+
+#Calculate avg, sd, etc.----
+simulations %>%
+  group_by(Application) %>%
+  summarise(avg_time = mean(time),
+            avg_energy = mean(energy),
+            sd_time = sd(time),
+            sd_energy = sd(energy))
