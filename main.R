@@ -71,7 +71,7 @@ ggplot(simulations, aes(x=Application, y=energy, fill = Environment, group = Env
   geom_bar(stat='identity', position='dodge')  +
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
-  ylab('Energy [Joules]')
+  ylab('Energy [J]')
 ggsave(filename = "graphs/round_robin_energy.jpeg")
 
 
@@ -80,7 +80,7 @@ ggplot(simulations, aes(x=Application, y=ratio, fill = Environment, group = Envi
   geom_bar(stat='identity', position='dodge')  +
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
-  ylab('Energy/Time [Joules/s]')
+  ylab('Energy/Time [J/s]')
 ggsave(filename = "graphs/round_robin_energy_time.jpeg")
 
 
