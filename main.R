@@ -62,6 +62,7 @@ ggplot(simulations, aes(x=Application, y=time, fill = Environment, group = Envir
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
   ylab('Time [s]')
+ggsave(filename = "graphs/round_robin_time.jpeg")
 
 #Plot Energy Consumtion----
 ggplot(simulations, aes(x=Application, y=energy, fill = Environment, group = Environment)) +
@@ -69,6 +70,7 @@ ggplot(simulations, aes(x=Application, y=energy, fill = Environment, group = Env
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
   ylab('Energy [Joules]')
+ggsave(filename = "graphs/round_robin_energy.jpeg")
 
 #Plot Energy/Time Consumtion----
 ggplot(simulations, aes(x=Application, y=ratio, fill = Environment, group = Environment)) +
@@ -76,3 +78,4 @@ ggplot(simulations, aes(x=Application, y=ratio, fill = Environment, group = Envi
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
   ylab('Energy/Time [Joules/s]')
+ggsave(filename = "graphs/round_robin_energy_time.jpeg")
