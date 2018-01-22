@@ -30,7 +30,7 @@ simulations <-
                        each = n_app),
              time = rep(0,n_app*n_env),
              energy = rep(0,n_app*n_env),
-             scheduler = rep("",n_app*n_env))
+             Scheduler = rep("",n_app*n_env))
 
 simulations_out <- simulations[0,]
 
@@ -53,7 +53,7 @@ for (k in 1:length(scheduler)) {
     
   }
   
-  simulations_tmp$scheduler <- scheduler[k]
+  simulations_tmp$Scheduler <- scheduler[[k]]
   
   simulations_out <- rbind(simulations_out,simulations_tmp)
   
@@ -91,9 +91,53 @@ ggsave(filename = "graphs/round_robin_energy_time.pdf", device = "pdf", scale = 
 
 
 #Calculate avg, sd, etc.----
-simulations_out %>%
-  group_by(Application) %>%
-  summarise(avg_time = mean(time),
-            avg_energy = mean(energy),
-            sd_time = sd(time),
-            sd_energy = sd(energy))
+aggregated <- simulations_out %>%
+                group_by(Scheduler) %>%
+                summarise(avg_time = median(time),
+                          first_quant_time = quantile(time,0.25),
+                          third_quant_time = quantile(time,0.75),
+                          avg_energy = median(energy),
+                          first_quant_energy = quantile(energy,0.25),
+                          third_quant_energy = quantile(energy,0.75))
+
+#Compare Scheduling Algorithms----
+conversion <- 1/60/60
+aggregated$avg_time <- aggregated$avg_time*conversion
+aggregated$first_quant_time <- aggregated$first_quant_time*conversion
+aggregated$third_quant_time <- aggregated$third_quant_time*conversion
+
+aggregated$avg_energy <- aggregated$avg_energy*2.77778e-7
+aggregated$first_quant_energy <- aggregated$first_quant_energy*2.77778e-7
+aggregated$third_quant_energy <- aggregated$third_quant_energy*2.77778e-7
+
+ggplot(aggregated, aes(x=Scheduler, y=avg_time, fill = Scheduler, group = Scheduler)) +
+  geom_bar(stat='identity', position='dodge')  +
+  geom_errorbar(aes(ymin=first_quant_time, ymax=third_quant_time),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9)) +
+  theme_fivethirtyeight() + scale_fill_pander() + 
+  theme(axis.title = element_text()) + 
+  ylab('Time [h]') 
+ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
+
+ggplot(aggregated, aes(x=Scheduler, y=avg_energy, fill = Scheduler, group = Scheduler)) +
+  geom_bar(stat='identity', position='dodge')  +
+  geom_errorbar(aes(ymin=first_quant_energy, ymax=third_quant_energy),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9)) +
+  theme_fivethirtyeight() + scale_fill_pander() + 
+  theme(axis.title = element_text()) + 
+  ylab('Energy [kWh]') 
+ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
+
+
+ggplot(aggregated, aes(x=Scheduler, y=avg_energy/avg_time, fill = Scheduler, group = Scheduler)) +
+  geom_bar(stat='identity', position='dodge')  +
+  geom_errorbar(aes(ymin=first_quant_energy/first_quant_time, ymax=third_quant_energy/third_quant_time),
+                width=.2,                    # Width of the error bars
+                position=position_dodge(.9)) +
+  theme_fivethirtyeight() + scale_fill_pander() + 
+  theme(axis.title = element_text()) + 
+  ylab('Energy [kW]') 
+ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
+

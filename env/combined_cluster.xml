@@ -12,8 +12,8 @@
   <zone id="world" routing="Full">
 
     <!--Mini HPC from University of Basel-->
-    <cluster id="minihpc" prefix="Xeon" radical="1-44" suffix=".mini" 
-             speed="25.0Gf" core="10"
+    <cluster id="minihpc" prefix="Xeon" radical="1-22" suffix=".mini" 
+             speed="1.25Gf" core="20"
              bw="100Gbps" lat="1.04E-6s">
       
         <prop id="watt_per_state" value="50.0:57.0:120.0" />
@@ -22,7 +22,7 @@
 
     <!--Micro HPC from Univerity of Basel (Anton Gstöhl Bachelor Thesis)-->
     <cluster id="microhpc" prefix="Odroid" radical="1-64" suffix=".micro" 
-             speed="139.5Mf" core="4"
+             speed="0.5Gf" core="4"
              bw="10Gbps" lat="1E-5s">
     
         <prop id="watt_per_state" value="1.0:2.0:5.0" />

@@ -4,7 +4,7 @@
   <zone id="network-zone" routing="None">
 
     <cluster id="microhpc" prefix="Odroid" radical="1-64" suffix=".micro" 
-             speed="139.5Mf" core="4"
+             speed="0.5Gf" core="4"
              bw="10Gbps" lat="1E-5s">
     
         <prop id="watt_per_state" value="1.0:2.0:5.0" />
