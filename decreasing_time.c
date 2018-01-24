@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include "util.h"
 
-XBT_LOG_NEW_DEFAULT_CATEGORY(scheduler, "Logging specific to this SimDag example");
+XBT_LOG_NEW_DEFAULT_CATEGORY(scheduler, "Logging specific to this scheduler");
 
 /*
- * Min-Min Algorithm basically copied from the SimGrid examples and described here
- * http://simgrid.gforge.inria.fr/tutorials/simdag-101.pdf
+ * Decreasing Time Algorithm as described here
+ * http://www.ctl.ua.edu/math103/scheduling/scheduling_algorithms.htm
  */
 int main(int argc, char **argv) {
     sg_host_energy_plugin_init();
@@ -60,27 +60,22 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        /* For each ready task:
-         * get the host that minimizes the completion time.
-         * select the task that has the minimum completion time on its best host.
+        /* Find most expensive task and schedule it.
          */
         SD_task_t selected_task = NULL;
-        sg_host_t selected_host = NULL;
-        double min_finish_time = -1;
+        double max_amount = -1;
         {
             unsigned int cursor;
             SD_task_t task;
             xbt_dynar_foreach(ready_tasks, cursor, task) {
-                sg_host_t host = SD_task_get_best_host(task);
-                double finish_time = finish_on_at(task, host);
-                if (min_finish_time < 0 || finish_time < min_finish_time) {
-                    min_finish_time = finish_time;
+                if (max_amount < 0 || SD_task_get_amount(task) < max_amount) {
+                    max_amount = SD_task_get_amount(task);
                     selected_task = task;
-                    selected_host = host;
                 }
             }
         }
 
+        sg_host_t selected_host = SD_task_get_best_host(selected_task);
         XBT_INFO("Schedule %s on %s", SD_task_get_name(selected_task), sg_host_get_name(selected_host));
         SD_task_schedule_on(selected_task, selected_host);
 

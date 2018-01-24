@@ -1,26 +1,17 @@
-#CC = gcc
-#LIBS = -lsimgrid
-#CFLAGS = $(LIBS) 
-
-#all: round_robin
-
-#round_robin: round_robin.c
-#	$(CC) -o round_robin round_robin.c $(CFLAGS)
-
-#CC = gcc
-#LIBS = -lsimgrid
-#CFLAGS = $(LIBS) 
-
-#all: sd_scheduling
-
-#sd_scheduling: sd_scheduling.c
-#	$(CC) -o sd_scheduling sd_scheduling.c $(CFLAGS)
-	
 CC = gcc
 LIBS = -lsimgrid
-CFLAGS = $(LIBS) 
+CFLAGS = $(LIBS) -O2
 
-all: minmin
+all: round_robin minmin critical_path decreasing_time
 
-sd_scheduling: minmin.c
-	$(CC) -o minmin minmin.c $(CFLAGS)
+round_robin: round_robin.c util.c util.h
+	$(CC) -o round_robin util.c round_robin.c $(CFLAGS)
+
+minmin: minmin.c util.c util.h
+	$(CC) -o minmin minmin.c util.c $(CFLAGS)
+
+critical_path: critical_path.c util.c util.h
+	$(CC) -o critical_path critical_path.c util.c $(CFLAGS)
+
+decreasing_time: decreasing_time.c util.c util.h
+	$(CC) -o decreasing_time decreasing_time.c util.c $(CFLAGS)
