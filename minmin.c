@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
     {
         SD_task_t root;
         xbt_dynar_get_cpy(dax, 0, &root);
-        sg_host_t host = SD_task_get_best_host(root);
+        sg_host_t host = SD_task_get_fastest_host(root);
         SD_task_schedulel(root, 1, host);
     }
     xbt_dynar_t changed_tasks = xbt_dynar_new(sizeof(SD_task_t), NULL);
@@ -71,8 +71,8 @@ int main(int argc, char **argv) {
             unsigned int cursor;
             SD_task_t task;
             xbt_dynar_foreach(ready_tasks, cursor, task) {
-                sg_host_t host = SD_task_get_best_host(task);
-                double finish_time = finish_on_at(task, host);
+                sg_host_t host = SD_task_get_fastest_host(task);
+                double finish_time = predict_finish_time(task, host);
                 if (min_finish_time < 0 || finish_time < min_finish_time) {
                     min_finish_time = finish_time;
                     selected_task = task;
