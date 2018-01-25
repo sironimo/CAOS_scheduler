@@ -17,12 +17,12 @@ int main(int argc, char **argv) {
     xbt_assert(argc > 2, "Usage: %s platform_file dax_file \n"
             "\tExample: %s simulacrum_7_hosts.xml Montage_25.xml", argv[0], argv[0]);
 
-    xbt_dynar_t dax = SD_daxload(argv[2]);
-
     SD_create_environment(argv[1]);
 
     size_t total_nhosts = sg_host_count();
     sg_host_t *hosts = sg_host_list();
+
+    xbt_dynar_t dax = SD_daxload(argv[2]);
 
     {
         unsigned int cpt = 0, k = 0;

@@ -1,3 +1,4 @@
+#include <simgrid/plugins/energy.h>
 #include "util.h"
 
 /*
@@ -45,7 +46,7 @@ xbt_dynar_t get_ready_tasks(xbt_dynar_t tasks) {
 }
 
 // return the time task would finish on host
-double finish_on_at(SD_task_t task, sg_host_t host) {
+double predict_finish_time(SD_task_t task, sg_host_t host) {
     double result;
 
     xbt_dynar_t parents = SD_task_get_parents(task);
@@ -59,7 +60,9 @@ double finish_on_at(SD_task_t task, sg_host_t host) {
         SD_task_t parent;
         last_data_available = -1.0;
         xbt_dynar_foreach(parents, i, parent) {
-            /* normal case */
+            /* normal case, if somehow we can't estimate the redistribution time because
+             * of null pointers we set data_available = 0
+             */
             if (SD_task_get_kind(parent) == SD_TASK_COMM_E2E) {
                 xbt_dynar_t grand_parents = SD_task_get_parents(parent);
                 if(xbt_dynar_is_empty(grand_parents)) {
@@ -67,11 +70,15 @@ double finish_on_at(SD_task_t task, sg_host_t host) {
                 } else {
                     SD_task_t grand_parent;
                     xbt_dynar_get_cpy(grand_parents, 0, &grand_parent);
-                    sg_host_t grand_parent_host = *SD_task_get_workstation_list(grand_parent);
-/* Estimate the redistribution time from this parent */
-                    redist_time = sg_host_route_latency(grand_parent_host, host) +
-                                  SD_task_get_amount(parent) / sg_host_route_bandwidth(grand_parent_host, host);
-                    data_available = SD_task_get_finish_time(grand_parent) + redist_time;
+                    sg_host_t *grand_parent_host = SD_task_get_workstation_list(grand_parent);
+                    /* Estimate the redistribution time from this parent */
+                    if(grand_parent_host) {
+                        redist_time = sg_host_route_latency(*grand_parent_host, host) +
+                                      SD_task_get_amount(parent) / sg_host_route_bandwidth(*grand_parent_host, host);
+                        data_available = SD_task_get_finish_time(grand_parent) + redist_time;
+                    } else {
+                        data_available = 0;
+                    }
                 }
                 xbt_dynar_free_container(&grand_parents);
             }
@@ -97,15 +104,22 @@ double finish_on_at(SD_task_t task, sg_host_t host) {
     return result;
 }
 
+//predict energy consumption of task on host
+double predict_energy_consumption(SD_task_t task, sg_host_t host) {
+    int n = sg_host_get_nb_pstates(host);
+    double watts = sg_host_get_wattmax_at(host, n-1);
+    return predict_finish_time(task, host) * watts;
+}
+
 // return host which minimises finish time for given task
-sg_host_t SD_task_get_best_host(SD_task_t task) {
+sg_host_t SD_task_get_fastest_host(SD_task_t task) {
     sg_host_t *hosts = sg_host_list();
     size_t nhosts = sg_host_count();
     sg_host_t best_host = hosts[0];
-    double min_EFT = finish_on_at(task, hosts[0]);
+    double min_EFT = predict_finish_time(task, hosts[0]);
 
     for (int i = 1; i < nhosts; i++) {
-        double EFT = finish_on_at(task, hosts[i]);
+        double EFT = predict_finish_time(task, hosts[i]);
 
         if (EFT < min_EFT) {
             min_EFT = EFT;
@@ -116,8 +130,32 @@ sg_host_t SD_task_get_best_host(SD_task_t task) {
     return best_host;
 }
 
+sg_host_t SD_task_get_cheapest_host(SD_task_t task) {
+    sg_host_t *hosts = sg_host_list();
+    size_t nhosts = sg_host_count();
+    sg_host_t best_host = hosts[0];
+    double min_EFT = predict_energy_consumption(task, hosts[0]);
+
+    for (int i = 1; i < nhosts; i++) {
+        double EFT = predict_energy_consumption(task, hosts[i]);
+
+        if (EFT < min_EFT) {
+            min_EFT = EFT;
+            best_host = hosts[i];
+        }
+    }
+    xbt_free(hosts);
+    return best_host;
+}
+
+
+
 // call schedulel(task,1,host) and update host attributes
 void SD_task_schedule_on(SD_task_t task, sg_host_t host) {
+    // let host run full speed
+    int n = sg_host_get_nb_pstates(host);
+    sg_host_set_pstate(host, n-1);
+
     SD_task_schedulel(task, 1, host);
 
     /*
@@ -136,5 +174,5 @@ void SD_task_schedule_on(SD_task_t task, sg_host_t host) {
         SD_task_dependency_add("resource", NULL, last_scheduled_task, task);
 
     sg_host_set_last_scheduled_task(host, task);
-    sg_host_set_available_at(host, finish_on_at(task, host));
+    sg_host_set_available_at(host, predict_finish_time(task, host));
 }

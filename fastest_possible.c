@@ -1,8 +1,6 @@
 #include <string.h>
 #include <simgrid/simdag.h>
-#include <simgrid/plugins/energy.h>
 #include <stdio.h>
-#include "util.h"
 
 XBT_LOG_NEW_DEFAULT_CATEGORY(scheduler, "Logging specific to this scheduler");
 
@@ -16,13 +14,6 @@ double SD_task_get_critical_value(SD_task_t task) {
 
 void SD_task_set_critical_value(SD_task_t task, double val) {
     *(double*)SD_task_get_data(task) = val;
-}
-
-//used to sort tasks by critical value (descending)
-int SD_task_compare(const void* a, const void* b) {
-    SD_task_t ta = *(SD_task_t*) a;
-    SD_task_t tb = *(SD_task_t*) b;
-    return SD_task_get_critical_value(ta) < SD_task_get_critical_value(tb);
 }
 
 /*
@@ -87,11 +78,9 @@ void backflow_critical_values(xbt_dynar_t dax, double *critical_values) {
 }
 
 /*
- * Critical Path Algorithm as described here
- * http://www.ctl.ua.edu/math103/scheduling/scheduling_algorithms.htm
+ * Estimate the time needed to execute critical path on fastest host.
  */
 int main(int argc, char **argv) {
-    sg_host_energy_plugin_init();
     SD_init(&argc, argv);
 
     xbt_assert(argc > 2, "Usage: %s platform_file dax_file \n"
@@ -101,74 +90,52 @@ int main(int argc, char **argv) {
 
     size_t total_nhosts = sg_host_count();
     sg_host_t *hosts = sg_host_list();
+    sg_host_t host = NULL;
 
+    double max_speed = -1.0;
     for (int cursor = 0; cursor < total_nhosts; cursor++) {
-        sg_host_user_set(hosts[cursor], xbt_new0(struct _HostAttribute, 1));
-        sg_host_set_pstate(hosts[cursor], 0);
+        if( max_speed < 0 || sg_host_speed(hosts[cursor]) > max_speed) {
+            max_speed = sg_host_speed(hosts[cursor]);
+            host = hosts[cursor];
+        }
     }
 
     xbt_dynar_t dax = SD_daxload(argv[2]);
-    /* set watch points on completion of tasks such that when calling
-     *      SD_simulate_with_update(-1.0, changed_tasks);
-     * the simulation runs until the first task is completed.
-     */
-    {
-        unsigned int cursor;
-        SD_task_t task;
-        xbt_dynar_foreach(dax, cursor, task) {
-            SD_task_watch(task, SD_DONE);
-        }
-    }
+
+    XBT_INFO("Fastest host is %s", sg_host_get_name(host));
 
     /* allocate space for critical values and compute them */
     double *critical_values = calloc(xbt_dynar_length(dax), sizeof(double));
     backflow_critical_values(dax, critical_values);
 
     /* Schedule the root first */
-    {
-        SD_task_t root;
-        xbt_dynar_get_cpy(dax, 0, &root);
-        sg_host_t host = SD_task_get_best_host(root);
-        SD_task_schedulel(root, 1, host);
-    }
-    xbt_dynar_t changed_tasks = xbt_dynar_new(sizeof(SD_task_t), NULL);
-    SD_simulate_with_update(-1.0, changed_tasks);
+    SD_task_t root;
+    xbt_dynar_get_cpy(dax, 0, &root);
+    double finish_time = 0;
 
-    while (!xbt_dynar_is_empty(changed_tasks)) {
-        xbt_dynar_t ready_tasks = get_ready_tasks(dax);
-        xbt_dynar_reset(changed_tasks);
-
-        // If there are no ready tasks, advance simulation
-        if (xbt_dynar_is_empty(ready_tasks)) {
-            xbt_dynar_free_container(&ready_tasks);
-            SD_simulate_with_update(-1.0, changed_tasks);
-            continue;
-        }
-
-        // sort ready tasks by critical value (descending) and schedule in that order
-        xbt_dynar_sort(ready_tasks, SD_task_compare);
+    xbt_dynar_t children = SD_task_get_children(root);
+    while(!xbt_dynar_is_empty(children)) {
+        double critical_value = -1.0;
+        SD_task_t next_task = NULL;
         {
             unsigned int cursor;
             SD_task_t task;
-            xbt_dynar_foreach(ready_tasks, cursor, task) {
-                sg_host_t selected_host = SD_task_get_best_host(task);
-                XBT_INFO("Schedule %s on %s", SD_task_get_name(task), sg_host_get_name(selected_host));
-                SD_task_schedule_on(task, selected_host);
+            xbt_dynar_foreach(children, cursor, task) {
+                if( critical_value < 0 || SD_task_get_critical_value(task) > critical_value ) {
+                    next_task = task;
+                    critical_value = SD_task_get_critical_value(task);
+                }
             }
         }
 
-        xbt_dynar_free_container(&ready_tasks);
-        SD_simulate_with_update(-1.0, changed_tasks);
+        finish_time += SD_task_get_amount(next_task)/ sg_host_speed(host);
+
+        root = next_task;
+        xbt_dynar_free_container(&children);
+        children = SD_task_get_children(root);
     }
 
-    xbt_dynar_free_container(&changed_tasks);
-
-    double total_energy = 0;
-    for (int cursor = 0; cursor < total_nhosts; cursor++)
-        total_energy += sg_host_get_consumed_energy(hosts[cursor]);
-
-    printf("Runtime Energy\n%f %f\n", SD_get_clock(), total_energy);
-
+    printf("Runtime Energy\n%f %f\n", finish_time, -1.0);
     {
         unsigned int cursor;
         SD_task_t task;

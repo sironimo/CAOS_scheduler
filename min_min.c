@@ -4,18 +4,11 @@
 #include <stdio.h>
 #include "util.h"
 
-XBT_LOG_NEW_DEFAULT_CATEGORY(scheduler, "Logging specific to this scheduler");
-
-//used to sort tasks by amount of operations (descending)
-int SD_task_compare(const void* a, const void* b) {
-    SD_task_t ta = *(SD_task_t*) a;
-    SD_task_t tb = *(SD_task_t*) b;
-    return SD_task_get_amount(ta) < SD_task_get_amount(tb);
-}
+XBT_LOG_NEW_DEFAULT_CATEGORY(scheduler, "Logging specific to this SimDag example");
 
 /*
- * Decreasing Time Algorithm as described here
- * http://www.ctl.ua.edu/math103/scheduling/scheduling_algorithms.htm
+ * Min-Min Algorithm basically copied from the SimGrid examples and described here
+ * http://simgrid.gforge.inria.fr/tutorials/simdag-101.pdf
  */
 int main(int argc, char **argv) {
     sg_host_energy_plugin_init();
@@ -49,7 +42,7 @@ int main(int argc, char **argv) {
     {
         SD_task_t root;
         xbt_dynar_get_cpy(dax, 0, &root);
-        sg_host_t host = SD_task_get_best_host(root);
+        sg_host_t host = SD_task_get_fastest_host(root);
         SD_task_schedulel(root, 1, host);
     }
     xbt_dynar_t changed_tasks = xbt_dynar_new(sizeof(SD_task_t), NULL);
@@ -67,17 +60,29 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        // sort ready tasks by amount of operations (descending) and schedule in that order
-        xbt_dynar_sort(ready_tasks, SD_task_compare);
+        /* For each ready task:
+         * get the host that minimizes the completion time.
+         * select the task that has the minimum completion time on its best host.
+         */
+        SD_task_t selected_task = NULL;
+        sg_host_t selected_host = NULL;
+        double min_finish_time = -1;
         {
             unsigned int cursor;
             SD_task_t task;
             xbt_dynar_foreach(ready_tasks, cursor, task) {
-                sg_host_t selected_host = SD_task_get_best_host(task);
-                XBT_INFO("Schedule %s on %s", SD_task_get_name(task), sg_host_get_name(selected_host));
-                SD_task_schedule_on(task, selected_host);
+                sg_host_t host = SD_task_get_fastest_host(task);
+                double finish_time = predict_finish_time(task, host);
+                if (min_finish_time < 0 || finish_time < min_finish_time) {
+                    min_finish_time = finish_time;
+                    selected_task = task;
+                    selected_host = host;
+                }
             }
         }
+
+        XBT_INFO("Schedule %s on %s", SD_task_get_name(selected_task), sg_host_get_name(selected_host));
+        SD_task_schedule_on(selected_task, selected_host);
 
         xbt_dynar_free_container(&ready_tasks);
         xbt_dynar_reset(changed_tasks);

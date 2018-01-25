@@ -3,6 +3,12 @@
 
 #include <simgrid/simdag.h>
 
+#ifndef ENERGY_SCHEDULER
+#define SD_task_get_best_host SD_task_get_fastest_host
+#else
+#define SD_task_get_best_host SD_task_get_cheapest_host
+#endif
+
 typedef struct _HostAttribute *HostAttribute;
 struct _HostAttribute {
     /* Earliest time at which a host is ready to execute a task */
@@ -12,12 +18,18 @@ struct _HostAttribute {
 
 double sg_host_get_available_at(sg_host_t host);
 void sg_host_set_available_at(sg_host_t host, double time);
+
 SD_task_t sg_host_get_last_scheduled_task(sg_host_t host);
 void sg_host_set_last_scheduled_task(sg_host_t host, SD_task_t task);
 
 xbt_dynar_t get_ready_tasks(xbt_dynar_t tasks);
-double finish_on_at(SD_task_t task, sg_host_t host);
-sg_host_t SD_task_get_best_host(SD_task_t task);
+
+double predict_finish_time(SD_task_t task, sg_host_t host);
+double predict_energy_consumption(SD_task_t task, sg_host_t host);
+
+sg_host_t SD_task_get_fastest_host(SD_task_t task);
+sg_host_t SD_task_get_cheapest_host(SD_task_t task);
+
 void SD_task_schedule_on(SD_task_t task, sg_host_t host);
 
 #endif //SIMGRID_PROJECT_UTIL_H
