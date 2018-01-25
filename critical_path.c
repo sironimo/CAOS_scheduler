@@ -24,40 +24,53 @@ void SD_task_set_critical_value(SD_task_t task, double val) {
 void backflow_critical_values(xbt_dynar_t dax, double *critical_values) {
     xbt_dynar_t current_level = xbt_dynar_new(sizeof(SD_task_t), NULL);
     xbt_dynar_t new_level = xbt_dynar_new(sizeof(SD_task_t), NULL);
-    unsigned int i;
-    SD_task_t t;
+
     // identify end nodes
-    xbt_dynar_foreach(dax, i, t) {
-        xbt_dynar_t children = SD_task_get_children(t);
-        SD_task_set_data(t, critical_values + i);
-        if (xbt_dynar_is_empty(children)) {
-            xbt_dynar_push(current_level, &t);
-            critical_values[i] = SD_task_get_amount(t);
+    {
+        unsigned int i;
+        SD_task_t t;
+        xbt_dynar_foreach(dax, i, t) {
+            xbt_dynar_t children = SD_task_get_children(t);
+            SD_task_set_data(t, critical_values + i);
+            if (xbt_dynar_is_empty(children)) {
+                xbt_dynar_push(current_level, &t);
+                critical_values[i] = SD_task_get_amount(t);
+            }
+            xbt_dynar_free_container(&children);
         }
-        xbt_dynar_free_container(&children);
     }
 
     while (!xbt_dynar_is_empty(current_level)) {
-        SD_task_t w;
-        xbt_dynar_foreach(current_level, i, w) {
-            xbt_dynar_t parents = SD_task_get_parents(w);
-            unsigned int j;
-            // Find the longest path to each parent and update the level.
-            xbt_dynar_foreach(parents, j, t) {
-                double amount = SD_task_get_critical_value(w) + SD_task_get_amount(t);
-                if (!xbt_dynar_member(new_level, &t)) {
-                    xbt_dynar_push(new_level, &t);
+        {
+            SD_task_t w;
+            unsigned int i;
+            xbt_dynar_foreach(current_level, i, w) {
+                xbt_dynar_t parents = SD_task_get_parents(w);
+                // Find the longest path to each parent and update the level.
+                {
+                    unsigned int j;
+                    SD_task_t t;
+                    xbt_dynar_foreach(parents, j, t) {
+                        double amount = SD_task_get_critical_value(w) + SD_task_get_amount(t);
+                        if (!xbt_dynar_member(new_level, &t)) {
+                            xbt_dynar_push(new_level, &t);
+                        }
+                        if (amount > SD_task_get_critical_value(t)) {
+                            SD_task_set_critical_value(t, amount);
+                        }
+                    }
                 }
-                if (amount > SD_task_get_critical_value(t)) {
-                    SD_task_set_critical_value(t, amount);
-                }
+                xbt_dynar_free_container(&parents);
             }
-            xbt_dynar_free_container(&parents);
         }
         //Exchange levels
         xbt_dynar_reset(current_level);
-        xbt_dynar_foreach(new_level, i, w) {
-            xbt_dynar_push(current_level, &w);
+        {
+            SD_task_t w;
+            unsigned int i;
+            xbt_dynar_foreach(new_level, i, w) {
+                xbt_dynar_push(current_level, &w);
+            }
         }
         xbt_dynar_reset(new_level);
     }

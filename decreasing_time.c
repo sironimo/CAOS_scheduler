@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
             unsigned int cursor;
             SD_task_t task;
             xbt_dynar_foreach(ready_tasks, cursor, task) {
-                if (max_amount < 0 || SD_task_get_amount(task) < max_amount) {
+                if (max_amount < 0 || SD_task_get_amount(task) > max_amount) {
                     max_amount = SD_task_get_amount(task);
                     selected_task = task;
                 }
