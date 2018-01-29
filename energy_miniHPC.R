@@ -7,7 +7,12 @@
 #load scheduler
 source("scheduler/scheduler.R")
 source("energy_env/miniHPC_energy.R")
-scheduler <- list("round_robin", "minmin", "decreasing_time", "critical_path")
+scheduler <- list("round_robin",
+                  "minmin",
+                  "decreasing_time",
+                  "critical_path",
+                  "critical_path_energy",
+                  "decreasing_time_energy")
 
 #Get Applications from folder app----
 apps <- grep(pattern = "xml",list.files("app"),value = T)
@@ -38,14 +43,14 @@ simulations_out <- simulations[0,]
 #Run Simulation for every App----
 for (k in 1:length(scheduler)) {
   
-  fun <- get(scheduler[[k]])
   simulations_tmp <- simulations
   
   for(i in 1:(n_app*n_env)){
     
     change_energy(energy_by_core = simulations_tmp$energy_core[i])
     
-    out <- fun(app = simulations$app_sim[i],
+    out <- scheduler_fun(scheduler = scheduler[[k]],
+               app = simulations$app_sim[i],
                env = "energy_env/miniHPC_energy.xml")
     
     simulations_tmp$time[i] <- out$Runtime
@@ -76,13 +81,13 @@ simulations_out_micro <- simulations_micro[0,]
 #Run Simulation for every App----
 for (k in 1:length(scheduler)) {
   
-  fun <- get(scheduler[[k]])
   simulations_tmp_micro <- simulations_micro
   
   for(i in 1:(n_app)){
     
-    out <- fun(app = simulations_micro$app_sim[i],
-               env = "env/microHPC.xml")
+    out <- scheduler_fun(scheduler = scheduler[[k]],
+                         app = simulations_micro$app_sim[i],
+                        env = "env/microHPC.xml")
     
     simulations_tmp_micro$time[i] <- out$Runtime
     simulations_tmp_micro$energy[i] <- out$Energy

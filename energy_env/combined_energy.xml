@@ -1,36 +1,4 @@
-
-change_energy <- function(energy_by_core = 3.5, base_factor = 0.4){
-  
-  base_energy <- energy_by_core * base_factor * 20
-  
-  
-  xml <- paste0("<?xml version='1.0'?>",'
-    <!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
-    <platform version="4.1">
-      <zone id="network-zone" routing="None">
-        
-        <cluster id="minihpc" prefix="Xeon" radical="1-22" suffix=".mini" 
-        speed="1.25Gf" core="20"
-        bw="100Gbps" lat="1.04E-6s">
-          
-          <prop id="watt_per_state" value="',base_energy,':',base_energy+energy_by_core,':',base_energy+energy_by_core*20,'" />
-          <prop id="watt_off" value="',base_energy,'" />
-          </cluster>
-          
-          </zone>
-          </platform>')
-  
-  write(xml, "energy_env/miniHPC_energy.xml")
-  
-}
-
-
-
-
-change_energy_comb <- function(base_power){
-  
-  
-  xml <- paste0("<?xml version='1.0'?>",'
+<?xml version='1.0'?>
 <!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
                 <platform version="4.1">
                 <!--Two over internet combinde clusters
@@ -48,8 +16,8 @@ change_energy_comb <- function(base_power){
                 speed="1.25Gf" core="20"
                 bw="100Gbps" lat="1.04E-6s">
                 
-          <prop id="watt_per_state" value="',round(base_power),'.0:',57,'.0:',120,'.0" />
-          <prop id="watt_off" value="',round(base_power),'" />
+          <prop id="watt_per_state" value="25.0:57.0:120.0" />
+          <prop id="watt_off" value="25" />
                 </cluster>
                 
                 <!--Micro HPC from Univerity of Basel (Anton Gstöhl Bachelor Thesis)-->
@@ -72,8 +40,4 @@ change_energy_comb <- function(base_power){
                 
                 
                 </zone>
-                </platform>')
-  
-  write(xml, "energy_env/combined_energy.xml")
-  
-}
+                </platform>

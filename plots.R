@@ -2,12 +2,28 @@
 library(ggthemes)
 library(ggplot2)
 library(dplyr)
-#
+
 
 #library(reshape2)
 
 simulations_out <- read.csv("data/simulations.csv")
 
+simulations_time <- simulations_out %>% mutate(app_short = paste0(substr(Application,start = 1,stop = 1), gsub(pattern = ".*_",replacement = "",Application)))
+ggplot(simulations_time, aes(x=app_short, y=time, fill = Environment, group = Environment)) +
+  geom_bar(stat='identity', position='dodge')  +
+  theme_fivethirtyeight() + scale_fill_pander() + 
+  theme(axis.title = element_text(), axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab('Time [s]') + xlab("Application") + 
+  facet_wrap(~Scheduler)
+ggsave(filename = "graphs/time.pdf", device = "pdf", scale = 0.8)
+
+ggplot(simulations_time, aes(x=app_short, y=energy, fill = Environment, group = Environment)) +
+  geom_bar(stat='identity', position='dodge')  +
+  theme_fivethirtyeight() + scale_fill_pander() + 
+  theme(axis.title = element_text(), axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab('Energy [J]') + xlab("Application") + 
+  facet_wrap(~Scheduler)
+ggsave(filename = "graphs/energy.pdf", device = "pdf", scale = 0.8)
 
 
 #Plot Times----
@@ -18,13 +34,13 @@ time_over_mini <- simulations_out %>%
                                                  by = c("Application", "Scheduler"),
                                                  suffix = c("", "_mini")) %>%
   select(Scheduler,Application, Environment, time, time_mini) %>%
-  mutate(norm_time = time/time_mini)
+  mutate(norm_time = time/time_mini, app_short = paste0(substr(Application,start = 1,stop = 1), gsub(pattern = ".*_",replacement = "",Application)))
 
-ggplot(time_over_mini, aes(x=Application, y=norm_time, fill = Environment, group = Environment)) +
+ggplot(time_over_mini, aes(x=app_short, y=norm_time, fill = Environment, group = Environment)) +
   geom_bar(stat='identity', position='dodge')  +
   theme_fivethirtyeight() + scale_fill_pander() + 
-  theme(axis.title = element_text(), axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  ylab('Normalized Time') + 
+  theme(axis.title = element_text(), axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab('Normalized Time') + xlab("Application") + 
   facet_wrap(~Scheduler)
 ggsave(filename = "graphs/norm_time.pdf", device = "pdf", scale = 0.8)
 
@@ -36,13 +52,13 @@ energy_over_mini <- simulations_out %>%
                                                  by = c("Application", "Scheduler"),
                                                  suffix = c("", "_mini")) %>%
   select(Scheduler,Application, Environment, energy, energy_mini) %>%
-  mutate(norm_energy = energy/energy_mini)
+  mutate(norm_energy = energy/energy_mini, app_short = paste0(substr(Application,start = 1,stop = 1), gsub(pattern = ".*_",replacement = "",Application)))
 
-ggplot(energy_over_mini, aes(x=Application, y=norm_energy, fill = Environment, group = Environment)) +
+ggplot(energy_over_mini, aes(x=app_short, y=norm_energy, fill = Environment, group = Environment)) +
   geom_bar(stat='identity', position='dodge')  +
   theme_fivethirtyeight() + scale_fill_pander() + 
-  theme(axis.title = element_text(), axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  ylab('Normalized Energy') + 
+  theme(axis.title = element_text(), axis.text.x = element_text(angle = 90, hjust = 1)) + 
+  ylab('Normalized Energy') + xlab("Application") + 
   facet_wrap(~Scheduler)
 ggsave(filename = "graphs/norm_energy.pdf", device = "pdf", scale = 0.8)
 
@@ -73,6 +89,10 @@ ggplot(aggregated, aes(x=Scheduler, y=avg_time, fill = Scheduler, group = Schedu
                 width=.2,                    # Width of the error bars
                 position=position_dodge(.9)) +
   theme_fivethirtyeight() + scale_fill_pander() + 
+  annotate(geom = "text",label = c("1st Quant", "3rd Quant"),
+           x = c(5.5,5.5),
+           y = c(aggregated$first_quant_time[6],
+                 aggregated$third_quant_time[6])) + 
   theme(axis.title = element_text(), axis.text.x = element_text(angle = 20, hjust = 1)) + 
   ylab('Time [h]') 
 ggsave(filename = "graphs/time_h_scheduler.pdf", device = "pdf", scale = 0.8)
@@ -117,14 +137,14 @@ ggplot(aggregated_cluster, aes(x=Environment, y=norm_time, fill = Environment, g
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
   ylab('Normalized Time') 
-ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
+ggsave(filename = "graphs/cluster_compare.pdf", device = "pdf", scale = 0.8)
 
 ggplot(aggregated_cluster, aes(x=Environment, y=norm_energy, fill = Environment, group = Environment)) +
   geom_bar(stat='identity', position='dodge')  +
   theme_fivethirtyeight() + scale_fill_pander() + 
   theme(axis.title = element_text()) + 
   ylab('Normalized Energy') 
-ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
+ggsave(filename = "graphs/cluster_compare_energy.pdf", device = "pdf", scale = 0.8)
 
 
 # Time/Energy over miniHPC
@@ -180,18 +200,26 @@ ggplot(aggregated_time_energy, aes(x=Scheduler, y=avg_energy, fill = Scheduler, 
 ggsave(filename = "graphs/energy_norm_scheduler.pdf", device = "pdf", scale = 0.8)
 
 # Energy and Time combined benchmark
-aggregated_time_energy %>% mutate()
+bench <- aggregated_time_energy %>%
+  mutate(benchmark = 0.5*avg_time + 0.5*avg_energy + 0.3*sd_time + 0.3*sd_energy)
+
+ggplot(bench, aes(x=Scheduler, y=benchmark, fill = Scheduler, group = Scheduler)) +
+  geom_bar(stat='identity', position='dodge')  +
+  theme_fivethirtyeight() + scale_fill_pander()  + 
+  theme(axis.title = element_text(), axis.text.x = element_text(angle = 20, hjust = 1)) + 
+  ylab('Energy/Time Benchmark') 
+ggsave(filename = "graphs/time_energy_bench_scheduler.pdf", device = "pdf", scale = 0.8)
 
 ggplot(time_energy, aes(x=time_ratio, y=energy_ratio, color = Environment)) +
   geom_point()  +
   geom_abline(intercept = 0, slope = 1, linetype = "dotted") +
   theme_fivethirtyeight() +
   scale_color_pander() + 
-  xlim(c(0,2.5)) + 
-  ylim(c(0,2.5)) +
+  xlim(c(0,4.5)) + 
+  ylim(c(0,4.5)) +
   theme(axis.title = element_text()) + 
-  ylab('Energy') +
-  xlab("Time")
+  ylab('Norm Energy') +
+  xlab("Norm Time")
 ggsave(filename = "graphs/scheduling_compare.pdf", device = "pdf", scale = 0.8)
 
 
