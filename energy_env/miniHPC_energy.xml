@@ -1,0 +1,15 @@
+<?xml version='1.0'?>
+    <!DOCTYPE platform SYSTEM "http://simgrid.gforge.inria.fr/simgrid/simgrid.dtd">
+    <platform version="4.1">
+      <zone id="network-zone" routing="None">
+        
+        <cluster id="minihpc" prefix="Xeon" radical="1-22" suffix=".mini" 
+        speed="1.25Gf" core="20"
+        bw="100Gbps" lat="1.04E-6s">
+          
+          <prop id="watt_per_state" value="7:10.5:77" />
+          <prop id="watt_off" value="7" />
+          </cluster>
+          
+          </zone>
+          </platform>

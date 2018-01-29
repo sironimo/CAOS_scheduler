@@ -3,8 +3,8 @@
 <platform version="4.1">
   <zone id="network-zone" routing="None">
 
-    <cluster id="minihpc" prefix="Xeon" radical="1-44" suffix=".mini" 
-             speed="25.0Gf" core="10"
+    <cluster id="minihpc" prefix="Xeon" radical="1-22" suffix=".mini" 
+             speed="1.25Gf" core="20"
              bw="100Gbps" lat="1.04E-6s">
       
         <prop id="watt_per_state" value="50.0:57.0:120.0" />
